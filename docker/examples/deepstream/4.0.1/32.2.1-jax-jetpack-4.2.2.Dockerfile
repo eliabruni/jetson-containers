@@ -5,7 +5,7 @@ FROM ${DEPENDENCIES_IMAGE} as dependencies
 
 ARG IMAGE_NAME
 ARG TAG
-FROM ${IMAGE_NAME}:32.2-jax-jetpack-4.2.1-runtime
+FROM ${IMAGE_NAME}:32.2.1-jax-jetpack-4.2.2-runtime
 
 # CUDA Toolkit for L4T
 
