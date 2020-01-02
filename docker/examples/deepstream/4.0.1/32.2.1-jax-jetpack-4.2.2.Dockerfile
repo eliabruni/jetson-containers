@@ -5,7 +5,7 @@ FROM ${DEPENDENCIES_IMAGE} as dependencies
 
 ARG IMAGE_NAME
 ARG TAG
-FROM ${IMAGE_NAME}:${TAG}-base
+FROM ${IMAGE_NAME}:32.2-jax-jetpack-4.2.1-runtime
 
 # CUDA Toolkit for L4T
 
@@ -19,7 +19,7 @@ RUN echo "0e12b2f53c7cbe4233c2da73f7d8e6b4 ${CUDA_TOOLKIT_PKG}" | md5sum -c - &&
     dpkg --force-all -i ${CUDA_TOOLKIT_PKG} && \
     rm ${CUDA_TOOLKIT_PKG} && \
     apt-get update && \
-    apt-get install -y --allow-downgrades cuda-cublas-dev-10-0 cuda-cudart-dev-10-0 cuda-npp-dev-10-0 && \
+    apt-get install -y --allow-downgrades cuda-toolkit-10-0 libgomp1 libfreeimage-dev libopenmpi-dev openmpi-bin && \
     dpkg --purge cuda-repo-l4t-10-0-local-10.0.326 \
     && \
     apt-get clean && \
@@ -31,7 +31,7 @@ RUN echo "e70d49ff115bc5782a3d07b572b5e3c0 libvisionworks-repo_1.6.0.500n_arm64.
     dpkg -i libvisionworks-repo_1.6.0.500n_arm64.deb && \
     apt-key add /var/visionworks-repo/GPGKEY && \
     apt-get update && \
-    apt-get install -y --allow-unauthenticated libvisionworks && \
+    apt-get install -y --allow-unauthenticated libvisionworks libvisionworks-dev libvisionworks-samples && \
     dpkg --purge libvisionworks-repo && \
     rm libvisionworks-repo_1.6.0.500n_arm64.deb && \
     apt-get clean && \
@@ -43,7 +43,7 @@ RUN echo "647b0ae86a00745fc6d211545a9fcefe libvisionworks-sfm-repo_0.90.4_arm64.
     dpkg -i libvisionworks-sfm-repo_0.90.4_arm64.deb && \
     apt-key add /var/visionworks-sfm-repo/GPGKEY && \
     apt-get update && \
-    apt-get install -y --allow-unauthenticated libvisionworks-sfm && \
+    apt-get install -y --allow-unauthenticated libvisionworks-sfm libvisionworks-sfm-dev && \
     dpkg --purge libvisionworks-sfm-repo && \
     rm libvisionworks-sfm-repo_0.90.4_arm64.deb && \
     apt-get clean && \
@@ -55,7 +55,7 @@ RUN echo "7630f0309c883cc6d8a1ab5a712938a5 libvisionworks-tracking-repo_0.88.2_a
     dpkg -i libvisionworks-tracking-repo_0.88.2_arm64.deb && \
     apt-key add /var/visionworks-tracking-repo/GPGKEY && \
     apt-get update && \
-    apt-get install -y --allow-unauthenticated libvisionworks-tracking && \
+    apt-get install -y --allow-unauthenticated libvisionworks-tracking libvisionworks-tracking-dev && \
     dpkg --purge libvisionworks-tracking-repo && \
     rm libvisionworks-tracking-repo_0.88.2_arm64.deb && \
     apt-get clean && \
@@ -119,6 +119,53 @@ COPY --from=dependencies /data/${TENSORRT_PKG} ${TENSORRT_PKG}
 RUN echo "9fbd6ca009cdf96391e2572f1d9ee773 ${TENSORRT_PKG}" | md5sum -c - && \
     dpkg -i ${TENSORRT_PKG} && \
     rm ${TENSORRT_PKG}
+    
+# Python support
+
+RUN apt-get update && apt-get install -y \
+        python-dev \
+        python-numpy \
+        python-pip \
+        python-py \
+        python-pytest \
+    && \
+    python -m pip install -U pip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Python2 support for TensorRT
+COPY --from=dependencies /data/python-libnvinfer_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb python-libnvinfer_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb
+RUN echo "05f07c96421bb1bfc828c1dd3bcf5fad python-libnvinfer_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb" | md5sum -c - && \
+    dpkg -i python-libnvinfer_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb && \
+    rm python-libnvinfer_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb
+
+COPY --from=dependencies /data/python-libnvinfer-dev_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb python-libnvinfer-dev_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb
+RUN echo "35febdc63ec98a92ce1695bb10a2b5e8 python-libnvinfer-dev_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb" | md5sum -c - && \
+    dpkg -i python-libnvinfer-dev_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb && \
+    rm python-libnvinfer-dev_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb
+
+RUN apt-get update && apt-get install -y \
+        python3-dev \
+        python3-numpy \
+        python3-pip \
+        python3-py \
+        python3-pytest \
+    && \
+    python3 -m pip install -U pip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Python3 support for TensorRT
+COPY --from=dependencies /data/python3-libnvinfer_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb python3-libnvinfer_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb
+RUN echo "88104606e76544cac8d79b4288372f0e python3-libnvinfer_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb" | md5sum -c - && \
+    dpkg -i python3-libnvinfer_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb && \
+    rm python3-libnvinfer_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb
+
+COPY --from=dependencies /data/python3-libnvinfer-dev_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb python3-libnvinfer-dev_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb
+RUN echo "1b703b6ab7a477b24ac9e90e64945799 python3-libnvinfer-dev_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb" | md5sum -c - && \
+    dpkg -i python3-libnvinfer-dev_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb && \
+    rm python3-libnvinfer-dev_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb
+
 
 # Graph Surgeon
 COPY --from=dependencies /data/graphsurgeon-tf_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb graphsurgeon-tf_${LIBINFER_PKG_VERSION}+cuda10.0_arm64.deb
@@ -167,6 +214,24 @@ COPY --from=dependencies /data/libopencv_${OPENCV_PKG_VERSION}_arm64.deb libopen
 RUN echo "dd5b571c08a0098141203daec2ea1acc libopencv_${OPENCV_PKG_VERSION}_arm64.deb" | md5sum -c - && \
     dpkg -i libopencv_${OPENCV_PKG_VERSION}_arm64.deb && \
     rm libopencv_${OPENCV_PKG_VERSION}_arm64.deb
+    
+## Open CV python binding
+COPY --from=dependencies /data/libopencv-python_${OPENCV_PKG_VERSION}_arm64.deb libopencv-python_${OPENCV_PKG_VERSION}_arm64.deb
+RUN echo "35776ce159afa78a0fe727d4a3c5b6fa libopencv-python_${OPENCV_PKG_VERSION}_arm64.deb" | md5sum -c - && \
+    dpkg -i libopencv-python_${OPENCV_PKG_VERSION}_arm64.deb && \
+    rm libopencv-python_${OPENCV_PKG_VERSION}_arm64.deb
+
+# Open CV dev
+COPY --from=dependencies /data/libopencv-dev_${OPENCV_PKG_VERSION}_arm64.deb libopencv-dev_${OPENCV_PKG_VERSION}_arm64.deb
+RUN echo "d29571f888a59dd290da2650dc202623 libopencv-dev_${OPENCV_PKG_VERSION}_arm64.deb" | md5sum -c - && \
+    dpkg -i libopencv-dev_${OPENCV_PKG_VERSION}_arm64.deb && \
+    rm libopencv-dev_${OPENCV_PKG_VERSION}_arm64.deb
+
+# Open CV samples
+COPY --from=dependencies /data/libopencv-samples_${OPENCV_PKG_VERSION}_arm64.deb libopencv-samples_${OPENCV_PKG_VERSION}_arm64.deb
+RUN echo "4f28a7792425b5e1470d5aa73c2a470d libopencv-samples_${OPENCV_PKG_VERSION}_arm64.deb" | md5sum -c - && \
+    dpkg -i libopencv-samples_${OPENCV_PKG_VERSION}_arm64.deb && \
+    rm libopencv-samples_${OPENCV_PKG_VERSION}_arm64.deb
 
 # DeepStream Dependencies
 
