@@ -37,6 +37,7 @@ COPY --from=dependencies /data/libcudnn7-dev_$CUDNN_VERSION-1+cuda10.0_arm64.deb
 RUN echo "a010637c80859b2143ef24461ee2ef97 libcudnn7-dev_$CUDNN_VERSION-1+cuda10.0_arm64.deb" | md5sum -c - && \
     dpkg -i libcudnn7-dev_$CUDNN_VERSION-1+cuda10.0_arm64.deb && \
     rm libcudnn7-dev_$CUDNN_VERSION-1+cuda10.0_arm64.deb
+    
 
 COPY --from=dependencies /data/libcudnn7-doc_$CUDNN_VERSION-1+cuda10.0_arm64.deb libcudnn7-doc_$CUDNN_VERSION-1+cuda10.0_arm64.deb
 RUN echo "f9e43d15ff69d65a85d2aade71a43870 libcudnn7-doc_$CUDNN_VERSION-1+cuda10.0_arm64.deb" | md5sum -c - && \
@@ -226,21 +227,39 @@ RUN echo "4f28a7792425b5e1470d5aa73c2a470d libopencv-samples_${OPENCV_PKG_VERSIO
     dpkg -i libopencv-samples_${OPENCV_PKG_VERSION}_arm64.deb && \
     rm libopencv-samples_${OPENCV_PKG_VERSION}_arm64.deb
 
-# Install dependencies for TensorFlow
-#RUN apt-get update && apt-get install -y \
-#    hdf5-tools \
-#    libhdf5-dev \
-#    libhdf5-serial-dev \
-#    libjpeg8-dev \
-#    zip \
-#    zlib1g-dev \
-#    && \
-#    apt-get clean && \
-#    rm -rf /var/lib/apt/lists/*
+# DeepStream Dependencies
 
-#RUN python3 -m pip install -U numpy grpcio absl-py py-cpuinfo psutil portpicker grpcio six mock requests gast h5py astor termcolor
+RUN apt-get update && \
+    apt-get install -y \
+    libssl1.0.0 \
+    libgstreamer1.0-0 \
+    gstreamer1.0-tools \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-ugly \
+    gstreamer1.0-libav \
+    libgstrtspserver-1.0-0 \
+    libjansson4 \
+    libjson-glib-1.0-0 \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install TensorFlow
-#RUN python3 -m pip install --pre --extra-index-url https://developer.download.nvidia.com/compute/redist/jp/v42 tensorflow-gpu
-# can browse from https://developer.download.nvidia.com/compute/redist/jp/
-# RUN python3 -m pip install --extra-index-url https://developer.download.nvidia.com/compute/redist/jp/v42 tensorflow-gpu==$TF_VERSION+nv$NV_VERSION
+## Additional DeepStream dependencies usually installed by the CUDA Toolkit
+
+RUN apt-get update && \
+    apt-get install -y \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# DeepStream
+
+COPY ./deepstream-4.0_4.0-1_arm64.deb /deepstream-4.0_4.0-1_arm64.deb
+RUN dpkg -i /deepstream-4.0_4.0-1_arm64.deb && \
+    rm /deepstream-4.0_4.0-1_arm64.deb
+RUN export LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu/tegra:$LD_LIBRARY_PATH
+RUN ldconfig
+WORKDIR /opt/nvidia/deepstream/deepstream-4.0/samples
