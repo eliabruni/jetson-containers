@@ -263,9 +263,9 @@ RUN apt-get update && \
 
 # DeepStream
 
-COPY ./deepstream-4.0_4.0-1_arm64.deb /deepstream-4.0_4.0-1_arm64.deb
-RUN dpkg -i /deepstream-4.0_4.0-1_arm64.deb && \
-    rm /deepstream-4.0_4.0-1_arm64.deb
+COPY --from=dependencies /data/deepstream-4.0_4.0-1_arm64.deb deepstream-4.0_4.0-1_arm64.deb
+RUN dpkg -i deepstream-4.0_4.0-1_arm64.deb && \
+    rm deepstream-4.0_4.0-1_arm64.deb
 RUN export LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu/tegra:$LD_LIBRARY_PATH
 RUN ldconfig
 WORKDIR /opt/nvidia/deepstream/deepstream-4.0/samples
